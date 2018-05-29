@@ -14,7 +14,7 @@ void lidarCallback(const mission_ctrl::lidar_ctrl::ConstPtr& lidar_cmd);
 bool start = false;
 bool reverse_button = false;
 double steer = 0.0;
-double vel = 1;
+double vel = 0.0;
 
 bool take_left = false;
 bool take_right = false;
@@ -24,11 +24,7 @@ float steer_correction = 0.0;
 
 int main(int argc, char *argv[]){
   double steer_auto = 0.0;
-  double vel_auto = 0.0;
-
-  mission_ctrl::lidar_ctrl lidar_cmd;
-  lidar_cmd.is_left = true;
-
+  double vel_auto = 1.0;
 
   ros::Subscriber joy_sub, lidar_ctrl_sub; //laneData;
   ros::Publisher twist_pub;
@@ -43,23 +39,40 @@ int main(int argc, char *argv[]){
   cout << "Mission Control\n";
   ros::Rate loop_rate(10);
   while(ros::ok()){
-    cout << "start: " << start << " steer_auto: " << steer_auto << " steer_manual: " << steer << endl;
-    twist.linear.z = reverse_button;
-    twist.linear.x = vel;
+    cout << "start: " << start << " steer_auto: " << steer_auto << " take_right: "
+      << take_right << " take_left: " << take_left << " resume: " << resume
+      << " stop: " << stop << endl;
+
+
     if(!start){
       twist.angular.z = steer;
+      twist.linear.x = vel;
+      twist.linear.z = reverse_button;
     }
     else if(start){
-      if(right_turn)
+      if(take_right){
+        vel_auto = -0.23;
         steer_auto = -1.0;
-      else if(left_turn)
+      }
+      else if(take_left){
+        vel_auto = -0.23;
         steer_auto = 1.0;
-      else if(resume_image)
-        steer_auto = steer_correction;
-      else
+      }
+      else if(resume){
+        steer_auto = steer_correction*0.475;
+        vel_auto = -0.23;
+      }
+      else if(stop){
+        vel_auto = 1;
+      }
+      else{
+        vel_auto = 0.0;
         steer_auto = 0.0;
+      }
       twist.angular.z = steer_auto;
+      twist.linear.x = vel_auto;
     }
+
     twist_pub.publish(twist);
     ros::spinOnce();
     loop_rate.sleep();
@@ -79,9 +92,9 @@ void joyCallback(const sensor_msgs::Joy::ConstPtr& joy){
 }
 
 void lidarCallback(const mission_ctrl::lidar_ctrl::ConstPtr& lidar_cmd){
-  take_left = lidar_cmd.is_left;
-  take_right = lidar_cmd.is_right;
-  stop = lidar_cmd.stops;
-  resume = lidar_cmd.resume_image;
-  steer_correction = lidar_cmd.lane_correct;
+  take_left = lidar_cmd->is_left;
+  take_right = lidar_cmd->is_right;
+  stop = lidar_cmd->stops;
+  resume = lidar_cmd->resume_image;
+  steer_correction = lidar_cmd->lane_correct;
 }
