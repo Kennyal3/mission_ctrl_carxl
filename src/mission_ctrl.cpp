@@ -14,7 +14,7 @@ void lidarCallback(const mission_ctrl::lidar_ctrl::ConstPtr& lidar_cmd);
 bool start = false;
 bool reverse_button = false;
 double steer = 0.0;
-double vel = 0.0;
+double vel = 1;
 
 bool take_left = false;
 bool take_right = false;
